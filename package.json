@@ -1,0 +1,30 @@
+{
+  "name": "event-booking",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon -r dotenv/config -r esm app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papabarbas/event-booking.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/papabarbas/event-booking/issues"
+  },
+  "homepage": "https://github.com/papabarbas/event-booking#readme",
+  "dependencies": {
+    "dotenv": "^6.1.0",
+    "esm": "^3.0.84",
+    "express": "^4.16.4",
+    "express-graphql": "^0.7.1",
+    "graphql": "^14.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.7"
+  }
+}
