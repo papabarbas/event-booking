@@ -1,17 +1,25 @@
-import express from 'express';
-import graphqlHTTP from 'express-graphql';
-import { buildSchema } from 'graphql';
+import express from 'express'
+import graphqlHTTP from 'express-graphql'
+import { buildSchema } from 'graphql'
+import mongoose from 'mongoose'
 
-const app = express();
-const PORT = process.env.PORT;
+import EventModel from './models/Event'
 
-const events = [];
+const app = express()
+const PORT = process.env.PORT
 
-app.use(express.json());
+/// Fix ObjectId type
+const { ObjectId } = mongoose.Types
+ObjectId.prototype.valueOf = function() {
+  return this.toString()
+}
+/// ->
+
+app.use(express.json())
 app.use(
   '/graphql',
   graphqlHTTP({
-    schema: buildSchema(`
+    schema: buildSchema(/* GraphQL */ `
       type Event {
         _id: ID!
         title: String!
@@ -23,37 +31,55 @@ app.use(
       input EventInput {
         title: String!
         description: String!
-        price: Float!
+        price: Int!
+        date: String!
       }
 
-      type RootQuery{
+      type RootQuery {
+        event(id: ID!): Event
         events: [Event!]!
       }
-      
+
       type RootMutation {
         createEvent(eventInput: EventInput): Event
       }
 
       schema {
         query: RootQuery
-        mutation: RootMutation        
+        mutation: RootMutation
       }
     `),
     rootValue: {
-      events: (parent, args, context, info) => events,
-      createEvent: ({ eventInput: { title, description, price } }) => {
-        const event = {
-          _id: Math.random().toString(),
-          title,
-          price,
-          description,
-          date: new Date().toISOString()
-        };
-        events.push(event);
-        return event;
+      event: async ({ id }) => {
+        const event = await EventModel.findById(id)
+        console.log(event)
+        return event
+      },
+      events: async () => {
+        const events = EventModel.find()
+        return events
+      },
+      createEvent: async ({ eventInput }) => {
+        const event = await EventModel.create(eventInput).catch(err => {
+          throw new Error(error)
+        })
+        return event
       }
     }
   })
-);
+)
 
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+mongoose
+  .connect(
+    `mongodb+srv://${process.env.MONGODB_HOST}`,
+    {
+      user: process.env.MONGODB_USER,
+      pass: process.env.MONGODB_PASSWORD,
+      dbName: process.env.MONGODB_DATABASE,
+      useNewUrlParser: true
+    }
+  )
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))
+  })
+  .catch(err => console.log(err))
