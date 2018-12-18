@@ -2,18 +2,21 @@ import express from 'express'
 import graphqlHTTP from 'express-graphql'
 import { buildSchema } from 'graphql'
 import mongoose from 'mongoose'
+import bcrypt from 'bcryptjs'
 
 import EventModel from './models/Event'
+import UserModel from './models/User'
 
 const app = express()
 const PORT = process.env.PORT
 
-/// Fix ObjectId type
+// Fix ObjectId type
+
 const { ObjectId } = mongoose.Types
 ObjectId.prototype.valueOf = function() {
   return this.toString()
 }
-/// ->
+// ->
 
 app.use(express.json())
 app.use(
@@ -26,6 +29,7 @@ app.use(
         description: String!
         price: Float!
         date: String!
+        creator: String!
       }
 
       input EventInput {
@@ -35,6 +39,16 @@ app.use(
         date: String!
       }
 
+      type User {
+        _id: ID!
+        email: String!
+      }
+
+      input UserInput {
+        email: String!
+        password: String!
+      }
+
       type RootQuery {
         event(id: ID!): Event
         events: [Event!]!
@@ -42,6 +56,7 @@ app.use(
 
       type RootMutation {
         createEvent(eventInput: EventInput): Event
+        createUser(userInput: UserInput): User
       }
 
       schema {
@@ -51,7 +66,7 @@ app.use(
     `),
     rootValue: {
       event: async ({ id }) => {
-        const event = await EventModel.findById(id)
+        const event = await EventModel.findById(id).populate('creator', 'email')
         console.log(event)
         return event
       },
@@ -60,10 +75,37 @@ app.use(
         return events
       },
       createEvent: async ({ eventInput }) => {
-        const event = await EventModel.create(eventInput).catch(err => {
+        const eventData = {
+          ...eventInput,
+          creator: '5c18112336a4c21524004eb5'
+        }
+        const event = await EventModel.create(eventData).catch(err => {
           throw new Error(error)
         })
+        await UserModel.findByIdAndUpdate('5c18112336a4c21524004eb5', {
+          $push: { createdEvents: event._id }
+        })
         return event
+      },
+      createUser: async ({ userInput: { email, password } }) => {
+        try {
+          const hashedPass = await bcrypt.hash(password, 10)
+          const user = await UserModel.create({
+            email,
+            password: hashedPass
+          })
+          console.log({ ...user.doc })
+          return { ...user._doc, password: null }
+        } catch (error) {
+          throw new Error(error.errmsg)
+        }
+      }
+    },
+
+    Event: {
+      _id: parent => {
+        console.log(parent._id.toString())
+        return parent._id.toString()
       }
     }
   })
