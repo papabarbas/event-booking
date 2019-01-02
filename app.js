@@ -1,10 +1,12 @@
 import express from 'express'
 import graphqlHTTP from 'express-graphql'
-
 import mongoose from 'mongoose'
 
+import isAuth from './middleware/isAuth'
 import schema from './graphql/schema'
 import rootValue from './graphql/resolvers'
+
+// console.log(rootValue)
 
 const app = express()
 const PORT = process.env.PORT
@@ -12,12 +14,13 @@ const PORT = process.env.PORT
 // Fix ObjectId type
 
 const { ObjectId } = mongoose.Types
-ObjectId.prototype.valueOf = function() {
+ObjectId.prototype.valueOf = function () {
   return this.toString()
 }
 // ->
 
 app.use(express.json())
+app.use(isAuth)
 
 app.use(
   '/graphql',
