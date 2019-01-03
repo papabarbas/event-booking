@@ -62,3 +62,6 @@ typings/
 
 # Visiual Studio Code config folder
 .vscode/
+
+# macOS Desktop Store
+.DS_Store
